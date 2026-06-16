@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>السينما العالمية التفاعلية</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', sans-serif; 
+            background-color: #0d0d0d; 
+            color: #fff; 
+            padding: 30px; 
+            margin: 0; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center;
+            height: 100vh;
+        }
+        .card { 
+            background: #1a1a1a; 
+            padding: 30px; 
+            border-radius: 12px; 
+            box-shadow: 0 8px 24px rgba(0,0,0,0.8); 
+            width: 100%; 
+            max-width: 500px; 
+            text-align: center; 
+            border: 1px solid #2d2d2d; 
+        }
+        h2 { color: #00aaff; margin-bottom: 20px; }
+        p { color: #aaa; font-size: 14px; margin-bottom: 20px; }
+        input { 
+            width: 100%; 
+            padding: 12px; 
+            margin: 10px 0; 
+            border-radius: 6px; 
+            border: 1px solid #333; 
+            background: #222; 
+            color: #fff; 
+            box-sizing: border-box; 
+        }
+        button { 
+            width: 100%; 
+            padding: 12px; 
+            background: #00aaff; 
+            border: none; 
+            color: white; 
+            font-size: 16px; 
+            font-weight: bold; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            margin-top: 15px; 
+            transition: 0.3s;
+        }
+        button:hover {
+            background: #0088cc;
+        }
+        button:disabled {
+            background: #444;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h2>السينما العالمية التفاعلية 🎬</h2>
+        <p>أدخل رابط الفيلم المباشر وارفع ملف الترجمة لبدء العرض السريع</p>
+        
+        <form id="cinemaForm" onsubmit="processGlobalCinema(event)">
+            <input type="url" id="videoUrlInput" placeholder="https://example.com/movie.mp4" dir="ltr" required>
+            <input type="file" id="srtFile" accept=".srt,.vtt" required>
+            <button type="submit" id="uploadBtn">تشغيل الفيلم الآن 🚀</button>
+        </form>
+    </div>
+
+    <script>
+        // طالما المشروع كله هيترفع على نفس موقع Vercel، بنسيب الـ URL فاضي عشان يكلم الـ API الداخلي مباشرة وبأمان
+        const BACKEND_URL = ""; 
+
+        async function processGlobalCinema(event) {
+            // منع الصفحة من عمل Refresh تلقائي لضمان اكتمال التحويل
+            event.preventDefault();
+
+            const videoUrl = document.getElementById('videoUrlInput').value.trim();
+            const srtFile = document.getElementById('srtFile').files[0];
+            const btn = document.getElementById('uploadBtn');
+
+            if (!videoUrl || !srtFile) {
+                return alert("من فضلك أدخل رابط الفيلم واختر ملف الترجمة أولاً!");
+            }
+
+            btn.disabled = true;
+            btn.innerText = "جاري التجهيز والتحويل فوراً... ⏳";
+
+            // قراءة ملف الترجمة كـ نص خام في جزء من الثانية (تجنباً لمشاكل رفع الملفات على فيرسال)
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                const srtText = e.target.result;
+
+                try {
+                    const response = await fetch(`${BACKEND_URL}/api/upload`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            videoUrl: videoUrl, 
+                            srtText: srtText, 
+                            srtName: srtFile.name 
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (response.ok && data.srtId) {
+                        // حفظ الروابط بأمان في الـ Session لمعالجتها في الصفحة التالية
+                        sessionStorage.setItem('onlineVideoUrl', videoUrl);
+                        sessionStorage.setItem('onlineSrtUrl', `${BACKEND_URL}/api/srt/${data.srtId}`);
+                        
+                        // التحويل الفوري والآمن لصفحة المشغل
+                        window.location.href = 'player.html';
+                    } else { 
+                        alert("فشل في معالجة البيانات: " + (data.error || "خطأ غير معروف")); 
+                        btn.disabled = false;
+                        btn.innerText = "تشغيل الفيلم الآن 🚀";
+                    }
+                } catch (err) { 
+                    console.error("خطأ اتصال:", err);
+                    alert("حدث خطأ في الاتصال بالسيرفر السحابي!"); 
+                    btn.disabled = false; 
+                    btn.innerText = "تشغيل الفيلم الآن 🚀";
+                }
+            };
+            
+            // بدء قراءة الملف
+            reader.readAsText(srtFile);
+        }
+    </script>
+</body>
+</html>
