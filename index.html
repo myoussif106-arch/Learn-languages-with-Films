@@ -92,19 +92,16 @@
             }
 
             btn.disabled = true;
-            btn.innerText = "Saving to database... ⏳";
+            btn.innerText = "Saving full subtitle to database... ⏳";
 
             const reader = new FileReader();
             reader.onload = async function(e) {
                 const rawText = e.target.result;
 
-                // تقصيص أسطر الترجمة لـ 200 سطر لتفادي قيود حجم الطلب في فيرسال المجاني
-                const lines = rawText.split('\n');
-                const shortLines = lines.slice(0, 200); 
-                const optimizedText = shortLines.join('\n').trim();
+                // 💡 تعديل نهائي: تم إلغاء الـ .slice والملف هيترفع بالكامل الآن
+                const optimizedText = rawText.trim(); 
 
                 try {
-                    // إرسال طلب الرفع الصريح للباك إيند السحابي
                     const response = await fetch('/api/upload', {
                         method: 'POST',
                         headers: { 
@@ -126,15 +123,12 @@
                     const data = await response.json();
                     
                     if (data && data.srtId) {
-                        // تنظيف الجلسة القديمة لضمان تسجيل القيم الجديدة بدون تداخل
                         sessionStorage.removeItem('onlineVideoUrl');
                         sessionStorage.removeItem('onlineSrtUrl');
 
-                        // تخزين الداتا الحية الجديدة القادمة من قاعدة بيانات Neon
                         sessionStorage.setItem('onlineVideoUrl', videoUrl);
                         sessionStorage.setItem('onlineSrtUrl', `/api/srt/${data.srtId}`);
                         
-                        // التوجيه لصفحة المشغل بعد التأكد التام من نجاح الحفظ في الداتا بيز
                         window.location.href = 'player.html';
                     } else {
                         alert("The server did not return a valid subtitle ID!");
