@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>السينما العالمية التفاعلية</title>
+    <title>FluentFlix</title>
     <style>
         body { 
-            font-family: 'Segoe UI', sans-serif; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
             background-color: #0d0d0d; 
             color: #fff; 
             padding: 30px; 
@@ -27,8 +27,8 @@
             text-align: center; 
             border: 1px solid #2d2d2d; 
         }
-        h2 { color: #00aaff; margin-bottom: 20px; }
-        p { color: #aaa; font-size: 14px; margin-bottom: 20px; }
+        h2 { color: #00aaff; margin-bottom: 10px; font-size: 28px; letter-spacing: 1px; }
+        p { color: #aaa; font-size: 14px; margin-bottom: 25px; }
         input { 
             width: 100%; 
             padding: 12px; 
@@ -54,19 +54,31 @@
         }
         button:hover { background: #0088cc; }
         button:disabled { background: #444; cursor: not-allowed; }
+        
+        .nav-link {
+            display: inline-block;
+            margin-top: 20px;
+            color: #888;
+            text-decoration: none;
+            font-size: 13px;
+            transition: 0.3s;
+        }
+        .nav-link:hover { color: #00aaff; }
     </style>
 </head>
 <body>
 
     <div class="card">
-        <h2>السينما العالمية التفاعلية 🎬</h2>
-        <p>أدخل رابط الفيلم المباشر وارفع ملف الترجمة لبدء العرض السريع</p>
+        <h2>FluentFlix 🎬</h2>
+        <p>Enter direct video URL and upload your subtitle file to start learning</p>
         
         <div id="cinemaForm">
-            <input type="url" id="videoUrlInput" placeholder="https://example.com/movie.mp4" dir="ltr" required>
+            <input type="url" id="videoUrlInput" placeholder="https://example.com/movie.mp4" required>
             <input type="file" id="srtFile" accept=".srt,.vtt" required>
-            <button type="button" id="uploadBtn" onclick="processGlobalCinema()">تشغيل الفيلم الآن 🚀</button>
+            <button type="button" id="uploadBtn" onclick="processGlobalCinema()">Play Movie Now 🚀</button>
         </div>
+
+        <a href="/" class="nav-link">Back to Home</a>
     </div>
 
     <script>
@@ -76,11 +88,11 @@
             const btn = document.getElementById('uploadBtn');
 
             if (!videoUrl || !srtFile) {
-                return alert("من فضلك أدخل رابط الفيلم واختر ملف الترجمة أولاً!");
+                return alert("Please enter the video URL and select a subtitle file first!");
             }
 
             btn.disabled = true;
-            btn.innerText = "جاري الحفظ في قاعدة البيانات أونلاين... ⏳";
+            btn.innerText = "Saving to database... ⏳";
 
             const reader = new FileReader();
             reader.onload = async function(e) {
@@ -108,7 +120,7 @@
                     
                     if (!response.ok) {
                         const errorData = await response.json().catch(() => ({}));
-                        throw new Error(errorData.error || "سيرفر فيرسال رفض استقبال الطلب");
+                        throw new Error(errorData.error || "Server rejected the upload request");
                     }
 
                     const data = await response.json();
@@ -125,23 +137,23 @@
                         // التوجيه لصفحة المشغل بعد التأكد التام من نجاح الحفظ في الداتا بيز
                         window.location.href = 'player.html';
                     } else {
-                        alert("السيرفر لم يرجع معرف الترجمة بشكل صحيح!");
+                        alert("The server did not return a valid subtitle ID!");
                         btn.disabled = false;
-                        btn.innerText = "تشغيل الفيلم الآن 🚀";
+                        btn.innerText = "Play Movie Now 🚀";
                     }
 
                 } catch (err) { 
-                    console.error("تفاصيل الخطأ:", err);
-                    alert("خطأ صريح في الاتصال: " + err.message); 
+                    console.error("Error details:", err);
+                    alert("Connection Error: " + err.message); 
                     btn.disabled = false; 
-                    btn.innerText = "تشغيل الفيلم الآن 🚀";
+                    btn.innerText = "Play Movie Now 🚀";
                 }
             };
             
             reader.onerror = function() {
-                alert("خطأ في قراءة ملف الترجمة من جهازك!");
+                alert("Error reading the subtitle file from your device!");
                 btn.disabled = false;
-                btn.innerText = "تشغيل الفيلم الآن 🚀";
+                btn.innerText = "Play Movie Now 🚀";
             };
 
             reader.readAsText(srtFile);
