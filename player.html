@@ -87,7 +87,6 @@
                                     <span><strong>${currentText}</strong></span>
                                 `;
                                 
-                                // عند الضغط: ينتقل الفيديو مباشرة للثانية المحددة في الفيلم ويشتغل فوراً
                                 div.onclick = () => { 
                                     video.currentTime = seconds; 
                                     video.play().catch(e => {});
