@@ -73,6 +73,7 @@
         const BACKEND_URL = ""; 
 
         async function processGlobalCinema(event) {
+            // منع الصفحة من التحويل التلقائي لضمان انتظار السيرفر
             event.preventDefault();
 
             const videoUrl = document.getElementById('videoUrlInput').value.trim();
@@ -82,21 +83,25 @@
             if (!videoUrl || !srtFile) return alert("من فضلك أدخل رابط الفيلم واختر ملف الترجمة أولاً!");
 
             btn.disabled = true;
-            btn.innerText = "جاري تهيئة الملف واجتياز قيد الحجم... ⏳";
+            btn.innerText = "جاري الحفظ في قاعدة البيانات أونلاين... ⏳";
 
             const reader = new FileReader();
             reader.onload = async function(e) {
                 const rawText = e.target.result;
 
-                // 💡 حل مشكلة قيد حجم فيرسال: تقسيم النص وأخذ أول 200 سطر فقط للتجربة لضمان عبور الطلب بسلام
+                // تقسيم وأخذ جزء لضمان العبور السريع من حماية حجم فيرسال
                 const lines = rawText.split('\n');
                 const shortLines = lines.slice(0, 200); 
                 const optimizedText = shortLines.join('\n').trim();
 
                 try {
-                    const response = await fetch(`${BACKEND_URL}/api/upload`, {
+                    // إجبار المتصفح على انتظار استجابة السيرفر السحابي كاملة
+                    const response = await fetch(`/api/upload`, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
+                        },
                         body: JSON.stringify({ 
                             videoUrl: videoUrl, 
                             srtText: optimizedText, 
@@ -104,19 +109,33 @@
                         })
                     });
                     
+                    if (!response.ok) {
+                        const errorData = await response.json().catch(() => ({}));
+                        throw new Error(errorData.error || "سيرفر فيرسال رفض الطلب فنياً");
+                    }
+
                     const data = await response.json();
                     
-                    if (response.ok && data.srtId) {
+                    if (data && data.srtId) {
+                        // تنظيف الـ Session القديمة لضمان عدم تكرار الداتا القديمة مع التوجيه
+                        sessionStorage.removeItem('onlineVideoUrl');
+                        sessionStorage.removeItem('onlineSrtUrl');
+
+                        // تخزين الداتا الجديدة الفعلية المربوطة بالـ ID الجديد من Neon
                         sessionStorage.setItem('onlineVideoUrl', videoUrl);
-                        sessionStorage.setItem('onlineSrtUrl', `${BACKEND_URL}/api/srt/${data.srtId}`);
+                        sessionStorage.setItem('onlineSrtUrl', `/api/srt/${data.srtId}`);
+                        
+                        // التحويل الآمن لصفحة المشغل
                         window.location.href = 'player.html';
-                    } else { 
-                        alert("فشل الرفع: " + (data.error || "حجم الملف ما زال كبيراً على سيرفر فيرسال المجاني")); 
+                    } else {
+                        alert("السيرفر لم يرجع معرف الترجمة بشكل صحيح!");
                         btn.disabled = false;
                         btn.innerText = "تشغيل الفيلم الآن 🚀";
                     }
+
                 } catch (err) { 
-                    alert("حدث خطأ في الاتصال بالسيرفر السحابي!"); 
+                    console.error("تفاصيل الخطأ الفعلي:", err);
+                    alert("خطأ اتصال: " + err.message); 
                     btn.disabled = false; 
                     btn.innerText = "تشغيل الفيلم الآن 🚀";
                 }
