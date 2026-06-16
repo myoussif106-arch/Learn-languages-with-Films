@@ -5,15 +5,17 @@ const cors = require('cors');
 const app = express();
 app.use(cors({ origin: '*' }));
 
-// 💡 رفعنا الحظر هنا وخلينا السيرفر يقبل نصوص الترجمة الطويلة جداً بدون تهنيج
+// رفع قيود الحجم داخل الإكسبريس نفسه لـ 50 ميجا
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
+// الاتصال بـ Neon عن طريق المتغير البيئي المحمي
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: { rejectUnauthorized: false }
 });
 
+// استقبال النص وحفظه في جدول uploads أونلاين
 app.post('/api/upload', async (req, res) => {
     const { videoUrl, srtText, srtName } = req.body;
     if (!videoUrl || !srtText) return res.status(400).json({ error: "البيانات ناقصة" });
@@ -29,6 +31,7 @@ app.post('/api/upload', async (req, res) => {
     }
 });
 
+// جلب نص الترجمة وعرضه كملف نصي للمشغل
 app.get('/api/srt/:id', async (req, res) => {
     try {
         const result = await pool.query("SELECT srt_content FROM uploads WHERE id = $1", [req.params.id]);
