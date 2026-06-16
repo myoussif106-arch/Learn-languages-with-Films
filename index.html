@@ -62,25 +62,22 @@
         <h2>السينما العالمية التفاعلية 🎬</h2>
         <p>أدخل رابط الفيلم المباشر وارفع ملف الترجمة لبدء العرض السريع</p>
         
-        <form id="cinemaForm" onsubmit="processGlobalCinema(event)">
+        <div id="cinemaForm">
             <input type="url" id="videoUrlInput" placeholder="https://example.com/movie.mp4" dir="ltr" required>
             <input type="file" id="srtFile" accept=".srt,.vtt" required>
-            <button type="submit" id="uploadBtn">تشغيل الفيلم الآن 🚀</button>
-        </form>
+            <button type="button" id="uploadBtn" onclick="processGlobalCinema()">تشغيل الفيلم الآن 🚀</button>
+        </div>
     </div>
 
     <script>
-        const BACKEND_URL = ""; 
-
-        async function processGlobalCinema(event) {
-            // منع الصفحة من التحويل التلقائي لضمان انتظار السيرفر
-            event.preventDefault();
-
+        async function processGlobalCinema() {
             const videoUrl = document.getElementById('videoUrlInput').value.trim();
             const srtFile = document.getElementById('srtFile').files[0];
             const btn = document.getElementById('uploadBtn');
 
-            if (!videoUrl || !srtFile) return alert("من فضلك أدخل رابط الفيلم واختر ملف الترجمة أولاً!");
+            if (!videoUrl || !srtFile) {
+                return alert("من فضلك أدخل رابط الفيلم واختر ملف الترجمة أولاً!");
+            }
 
             btn.disabled = true;
             btn.innerText = "جاري الحفظ في قاعدة البيانات أونلاين... ⏳";
@@ -89,14 +86,14 @@
             reader.onload = async function(e) {
                 const rawText = e.target.result;
 
-                // تقسيم وأخذ جزء لضمان العبور السريع من حماية حجم فيرسال
+                // تقصيص أسطر الترجمة لـ 200 سطر لتفادي قيود حجم الطلب في فيرسال المجاني
                 const lines = rawText.split('\n');
                 const shortLines = lines.slice(0, 200); 
                 const optimizedText = shortLines.join('\n').trim();
 
                 try {
-                    // إجبار المتصفح على انتظار استجابة السيرفر السحابي كاملة
-                    const response = await fetch(`/api/upload`, {
+                    // إرسال طلب الرفع الصريح للباك إيند السحابي
+                    const response = await fetch('/api/upload', {
                         method: 'POST',
                         headers: { 
                             'Content-Type': 'application/json',
@@ -111,21 +108,21 @@
                     
                     if (!response.ok) {
                         const errorData = await response.json().catch(() => ({}));
-                        throw new Error(errorData.error || "سيرفر فيرسال رفض الطلب فنياً");
+                        throw new Error(errorData.error || "سيرفر فيرسال رفض استقبال الطلب");
                     }
 
                     const data = await response.json();
                     
                     if (data && data.srtId) {
-                        // تنظيف الـ Session القديمة لضمان عدم تكرار الداتا القديمة مع التوجيه
+                        // تنظيف الجلسة القديمة لضمان تسجيل القيم الجديدة بدون تداخل
                         sessionStorage.removeItem('onlineVideoUrl');
                         sessionStorage.removeItem('onlineSrtUrl');
 
-                        // تخزين الداتا الجديدة الفعلية المربوطة بالـ ID الجديد من Neon
+                        // تخزين الداتا الحية الجديدة القادمة من قاعدة بيانات Neon
                         sessionStorage.setItem('onlineVideoUrl', videoUrl);
                         sessionStorage.setItem('onlineSrtUrl', `/api/srt/${data.srtId}`);
                         
-                        // التحويل الآمن لصفحة المشغل
+                        // التوجيه لصفحة المشغل بعد التأكد التام من نجاح الحفظ في الداتا بيز
                         window.location.href = 'player.html';
                     } else {
                         alert("السيرفر لم يرجع معرف الترجمة بشكل صحيح!");
@@ -134,12 +131,19 @@
                     }
 
                 } catch (err) { 
-                    console.error("تفاصيل الخطأ الفعلي:", err);
-                    alert("خطأ اتصال: " + err.message); 
+                    console.error("تفاصيل الخطأ:", err);
+                    alert("خطأ صريح في الاتصال: " + err.message); 
                     btn.disabled = false; 
                     btn.innerText = "تشغيل الفيلم الآن 🚀";
                 }
             };
+            
+            reader.onerror = function() {
+                alert("خطأ في قراءة ملف الترجمة من جهازك!");
+                btn.disabled = false;
+                btn.innerText = "تشغيل الفيلم الآن 🚀";
+            };
+
             reader.readAsText(srtFile);
         }
     </script>
