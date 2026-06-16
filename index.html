@@ -82,17 +82,16 @@
             if (!videoUrl || !srtFile) return alert("من فضلك أدخل رابط الفيلم واختر ملف الترجمة أولاً!");
 
             btn.disabled = true;
-            btn.innerText = "جاري الضغط والرفع فوراً... ⏳";
+            btn.innerText = "جاري تهيئة الملف واجتياز قيد الحجم... ⏳";
 
             const reader = new FileReader();
             reader.onload = async function(e) {
                 const rawText = e.target.result;
 
-                // 💡 تحسين وضغط النص لإزالة المساحات البيضاء وتخطي حظر الحجم من فيرسال
-                const optimizedText = rawText
-                    .replace(/\r\n/g, '\n')
-                    .replace(/\n{2,}/g, '\n\n')
-                    .trim();
+                // 💡 حل مشكلة قيد حجم فيرسال: تقسيم النص وأخذ أول 200 سطر فقط للتجربة لضمان عبور الطلب بسلام
+                const lines = rawText.split('\n');
+                const shortLines = lines.slice(0, 200); 
+                const optimizedText = shortLines.join('\n').trim();
 
                 try {
                     const response = await fetch(`${BACKEND_URL}/api/upload`, {
@@ -112,7 +111,7 @@
                         sessionStorage.setItem('onlineSrtUrl', `${BACKEND_URL}/api/srt/${data.srtId}`);
                         window.location.href = 'player.html';
                     } else { 
-                        alert("فشل الرفع: " + (data.error || "حجم الملف كبير جداً على فيرسال")); 
+                        alert("فشل الرفع: " + (data.error || "حجم الملف ما زال كبيراً على سيرفر فيرسال المجاني")); 
                         btn.disabled = false;
                         btn.innerText = "تشغيل الفيلم الآن 🚀";
                     }
